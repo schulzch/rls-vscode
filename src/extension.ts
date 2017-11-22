@@ -14,6 +14,7 @@ import { runRlsViaRustup, rustupUpdate } from './rustup';
 import { startSpinner, stopSpinner } from './spinner';
 import { RLSConfiguration } from './configuration';
 import { activateTaskProvider, deactivateTaskProvider } from './tasks';
+import { ChildProcess, spawnChildProcess, killAllChildProcesses } from './utils/child_process';
 
 import * as child_process from 'child_process';
 import * as fs from 'fs';
@@ -79,23 +80,22 @@ function makeRlsEnv(setLibPath = false): any {
     return env;
 }
 
-function makeRlsProcess(): Promise<child_process.ChildProcess> {
+function makeRlsProcess(): Promise<ChildProcess> {
     // Allow to override how RLS is started up.
     const rls_path = CONFIGURATION.rlsPath;
     const rls_root = CONFIGURATION.rlsRoot;
 
-    let childProcessPromise: Promise<child_process.ChildProcess>;
+    let childProcessPromise: Promise<ChildProcess>;
     if (rls_path) {
         const env = makeRlsEnv(true);
         console.info('running ' + rls_path);
-        childProcessPromise = Promise.resolve(child_process.spawn(rls_path, [], { env }));
+        childProcessPromise = spawnChildProcess(rls_path, [], { env });
     } else if (rls_root) {
         const env = makeRlsEnv();
         console.info('running `cargo run` in ' + rls_root);
-        childProcessPromise = Promise.resolve(child_process.spawn(
+        childProcessPromise = spawnChildProcess(
             CONFIGURATION.rustupPath, ['run', CONFIGURATION.channel, 'cargo', 'run', '--release'],
-          {cwd: rls_root, env})
-        );
+            {cwd: rls_root, env});
     } else {
         const env = makeRlsEnv();
         console.info('running with rustup');
@@ -173,9 +173,11 @@ function startLanguageClient(context: ExtensionContext)
 }
 
 export function deactivate(): Promise<void> {
-    deactivateTaskProvider();
-
-    return Promise.resolve();
+    return new Promise((resolve) => {
+        deactivateTaskProvider();
+        killAllChildProcesses();
+        resolve(void 0);
+    });
 }
 
 function warnOnMissingCargoToml() {

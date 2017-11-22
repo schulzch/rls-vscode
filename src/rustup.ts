@@ -10,18 +10,18 @@
 
 'use strict';
 
-import * as child_process from 'child_process';
 import { window } from 'vscode';
 
-import { execChildProcess } from './utils/child_process';
+import { ChildProcess, execChildProcess, spawnChildProcess } from './utils/child_process';
 import { startSpinner, stopSpinner } from './spinner';
 import { CONFIGURATION } from './extension';
 
 // This module handles running the RLS via rustup, including checking that rustup
 // is installed and installing any required components/toolchains.
 
-export function runRlsViaRustup(env: any): Promise<child_process.ChildProcess> {
-    return ensureToolchain().then(checkForRls).then(() => child_process.spawn(CONFIGURATION.rustupPath, ['run', CONFIGURATION.channel, 'rls'], { env }));
+export function runRlsViaRustup(env: any): Promise<ChildProcess> {
+    return ensureToolchain().then(checkForRls).then(() => 
+        spawnChildProcess(CONFIGURATION.rustupPath, ['run', CONFIGURATION.channel, 'rls'], { env }));
 }
 
 export async function rustupUpdate() {
